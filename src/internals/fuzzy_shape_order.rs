@@ -71,15 +71,14 @@ impl FuzzyShapeOrder {
 
 #[cfg(test)]
 mod tests {
-    use bitris::*;
 
     use crate::internals::{FuzzyShape, FuzzyShapeOrder};
     use crate::ShapeOrder;
 
     #[test]
     fn fuzzy() {
+        use super::Shape::*;
         use FuzzyShape::*;
-        use Shape::*;
         let fuzzy_shape_order = FuzzyShapeOrder::new(vec![Known(T), Unknown, Known(O)]);
         let orders = fuzzy_shape_order.expand_as_wildcard();
         assert_eq!(

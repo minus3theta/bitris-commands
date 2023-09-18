@@ -99,7 +99,7 @@ impl<'a, T: RotationSystem> PcPossibleBulkExecutor<'a, T> {
     /// See `PcPossibleBulkExecutorCreationError` for error patterns.
     /// ```
     /// use std::str::FromStr;
-    /// use bitris::{Shape, Board64, MoveRules, AllowMove};
+    /// use bitris::prelude::{Shape, Board64, MoveRules, AllowMove};
     /// use bitris_commands::{ClippedBoard, Pattern, PatternElement, ShapeCounter};
     /// use bitris_commands::pc_possible::PcPossibleBulkExecutor;
     ///
@@ -177,7 +177,7 @@ impl<'a, T: RotationSystem> PcPossibleBulkExecutor<'a, T> {
     /// If the clojure returns `ExecuteInstruction::Stop`, it stops.
     /// ```
     /// use std::str::FromStr;
-    /// use bitris::{Board64, MoveRules, AllowMove};
+    /// use bitris::prelude::{Board64, MoveRules, AllowMove};
     /// use bitris_commands::{ClippedBoard, Pattern, PatternElement, ShapeCounter};
     /// use bitris_commands::pc_possible::{ExecuteInstruction, PcPossibleBulkExecutor};
     ///
@@ -408,7 +408,7 @@ impl<'a, T: RotationSystem> PcPossibleBulkExecutor<'a, T> {
 mod tests {
     use std::str::FromStr;
 
-    use bitris::{xy, AllowMove, Board64, BoardOp, MoveRules, Shape};
+    use bitris::prelude::{xy, AllowMove, Board64, BoardOp, MoveRules, Shape};
 
     use crate::pc_possible::{PcPossibleBulkExecutor, PcPossibleExecutorBulkCreationError};
     use crate::{BitShapes, ClippedBoard, Pattern, PatternElement, ShapeCounter, ShapeSequence};
@@ -446,8 +446,8 @@ mod tests {
 
     #[test]
     fn execute_single() {
+        use super::Shape::*;
         use PatternElement::*;
-        use Shape::*;
 
         let board = Board64::from_str(
             "

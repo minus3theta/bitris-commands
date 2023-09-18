@@ -116,15 +116,13 @@ forward_impl_from!(ShapeSequence, from BitShapes);
 
 #[cfg(test)]
 mod tests {
-    use bitris::*;
-
     use crate::internals::{FuzzyShape, FuzzyShapeOrder};
     use crate::ShapeSequence;
 
     #[test]
     fn infer_input() {
+        use super::Shape::*;
         use FuzzyShape::*;
-        use Shape::*;
 
         let shape_sequence = ShapeSequence::new(vec![T, S]);
 
@@ -171,7 +169,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn infer_input_failed_to_assertion() {
-        let shape_sequence = ShapeSequence::new(vec![Shape::T, Shape::S]);
+        let shape_sequence = ShapeSequence::new(vec![super::Shape::T, super::Shape::S]);
         shape_sequence.infer_input(1);
     }
 }

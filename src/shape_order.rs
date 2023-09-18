@@ -162,8 +162,6 @@ impl ShapeOrder {
 
 #[cfg(test)]
 mod tests {
-    use bitris::*;
-
     use crate::{PopOp, ShapeOrder};
 
     #[test]
@@ -175,7 +173,7 @@ mod tests {
 
     #[test]
     fn one() {
-        use Shape::*;
+        use super::Shape::*;
 
         let sequence = ShapeOrder::new(vec![T]);
         let cursor = sequence.new_cursor();
@@ -207,7 +205,7 @@ mod tests {
 
     #[test]
     fn pop_first() {
-        use Shape::*;
+        use super::Shape::*;
 
         let sequence = ShapeOrder::new(vec![O, S]);
         let cursor = sequence.new_cursor();
@@ -248,7 +246,7 @@ mod tests {
 
     #[test]
     fn pop_second() {
-        use Shape::*;
+        use super::Shape::*;
 
         let sequence = ShapeOrder::new(vec![O, S, T]);
         let cursor = sequence.new_cursor();
