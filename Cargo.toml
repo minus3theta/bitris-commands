@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["knewjade"]
 
 [dependencies]
-bitris = { git = "https://github.com/minus3theta/bitris.git", rev = "dc9e62d0fbb0b8b52b7a322696cb5728e8fc76f2" }
+bitris = { git = "https://github.com/minus3theta/bitris.git", rev = "56ab3d4c244611625d620c2d381fae330585c629" }
 itertools = "0.10.5"
 bitvec = "1.0.1"
 fxhash = "0.2.1"
