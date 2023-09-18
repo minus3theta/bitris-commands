@@ -1,4 +1,4 @@
-use bitris::{Board64, BoardOp};
+use bitris::boards::{Board64, BoardOp};
 use thiserror::Error;
 
 /// Holds a board and height.

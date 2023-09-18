@@ -1,4 +1,4 @@
-use bitris::Shape;
+use bitris::pieces::Shape;
 use derive_more::Constructor;
 
 use crate::internal_macros::forward_impl_try_from;
@@ -112,17 +112,16 @@ impl TryFrom<&ShapeSequence> for BitShapes {
 
 forward_impl_try_from!(BitShapes, BitShapesCreationError, from ShapeSequence);
 
-
 #[cfg(test)]
 mod tests {
-    use bitris::Shape;
+    use bitris::pieces::Shape;
     use itertools::Itertools;
 
     use crate::BitShapes;
 
     #[test]
     fn len7() {
-        let shapes = BitShapes::try_from(Shape::all_into_iter().collect_vec()).unwrap();
+        let shapes = BitShapes::try_from(Shape::all_iter().collect_vec()).unwrap();
         assert_eq!(shapes.len(), 7);
     }
 

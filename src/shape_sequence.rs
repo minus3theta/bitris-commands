@@ -1,8 +1,8 @@
-use bitris::Shape;
+use bitris::pieces::Shape;
 
-use crate::{BitShapes, ForEachVisitor, ShapeOrder};
 use crate::internal_macros::forward_impl_from;
 use crate::internals::{FuzzyShape, FuzzyShapeOrder};
+use crate::{BitShapes, ForEachVisitor, ShapeOrder};
 
 /// Represents a sequence of shapes.
 /// "Sequence" means that it is not affected by the hold operation.
@@ -49,7 +49,8 @@ impl ShapeSequence {
 
         impl ForEachVisitor<[FuzzyShape]> for FuzzyOrderVecAggregator {
             fn visit(&mut self, fuzzy_shapes: &[FuzzyShape]) {
-                self.orders.push(FuzzyShapeOrder::new(fuzzy_shapes.to_vec()));
+                self.orders
+                    .push(FuzzyShapeOrder::new(fuzzy_shapes.to_vec()));
             }
         }
 
@@ -59,16 +60,23 @@ impl ShapeSequence {
     }
 
     /// See `infer_input()` for details.
-    pub(crate) fn infer_input_walk(&self, infer_size: usize, visitor: &mut impl ForEachVisitor<[FuzzyShape]>) {
-        fn rec<'a>(shapes: &Vec<Shape>, visitor: &mut impl ForEachVisitor<[FuzzyShape]>, buffer: &'a mut Vec<FuzzyShape>, from: usize, depth: usize, stock_index: usize) {
+    pub(crate) fn infer_input_walk(
+        &self,
+        infer_size: usize,
+        visitor: &mut impl ForEachVisitor<[FuzzyShape]>,
+    ) {
+        fn rec<'a>(
+            shapes: &Vec<Shape>,
+            visitor: &mut impl ForEachVisitor<[FuzzyShape]>,
+            buffer: &'a mut Vec<FuzzyShape>,
+            from: usize,
+            depth: usize,
+            stock_index: usize,
+        ) {
             use FuzzyShape::*;
 
             let to = shapes.len();
-            let number = if depth < to {
-                Some(depth)
-            } else {
-                None
-            };
+            let number = if depth < to { Some(depth) } else { None };
 
             if depth < from - 1 {
                 // add
@@ -98,12 +106,13 @@ impl ShapeSequence {
 
 impl From<&BitShapes> for ShapeSequence {
     fn from(bit_shapes: &BitShapes) -> Self {
-        Self { shapes: bit_shapes.to_vec() }
+        Self {
+            shapes: bit_shapes.to_vec(),
+        }
     }
 }
 
 forward_impl_from!(ShapeSequence, from BitShapes);
-
 
 #[cfg(test)]
 mod tests {
@@ -114,24 +123,30 @@ mod tests {
 
     #[test]
     fn infer_input() {
-        use Shape::*;
         use FuzzyShape::*;
+        use Shape::*;
 
         let shape_sequence = ShapeSequence::new(vec![T, S]);
 
         let orders = shape_sequence.infer_input(2);
-        assert_eq!(orders, vec![
-            FuzzyShapeOrder::new(vec![Known(S), Known(T)]),
-            FuzzyShapeOrder::new(vec![Known(T), Known(S)]),
-        ]);
+        assert_eq!(
+            orders,
+            vec![
+                FuzzyShapeOrder::new(vec![Known(S), Known(T)]),
+                FuzzyShapeOrder::new(vec![Known(T), Known(S)]),
+            ]
+        );
 
         let orders = shape_sequence.infer_input(3);
-        assert_eq!(orders, vec![
-            FuzzyShapeOrder::new(vec![Unknown, Known(T), Known(S)]),
-            FuzzyShapeOrder::new(vec![Known(S), Known(T), Unknown]),
-            FuzzyShapeOrder::new(vec![Known(T), Unknown, Known(S)]),
-            FuzzyShapeOrder::new(vec![Known(T), Known(S), Unknown]),
-        ]);
+        assert_eq!(
+            orders,
+            vec![
+                FuzzyShapeOrder::new(vec![Unknown, Known(T), Known(S)]),
+                FuzzyShapeOrder::new(vec![Known(S), Known(T), Unknown]),
+                FuzzyShapeOrder::new(vec![Known(T), Unknown, Known(S)]),
+                FuzzyShapeOrder::new(vec![Known(T), Known(S), Unknown]),
+            ]
+        );
 
         let orders = shape_sequence.infer_input(4);
         assert_eq!(orders.len(), 8);
@@ -144,19 +159,13 @@ mod tests {
         let shape_sequence = ShapeSequence::new(vec![]);
 
         let orders = shape_sequence.infer_input(0);
-        assert_eq!(orders, vec![
-            FuzzyShapeOrder::new(vec![]),
-        ]);
+        assert_eq!(orders, vec![FuzzyShapeOrder::new(vec![]),]);
 
         let orders = shape_sequence.infer_input(1);
-        assert_eq!(orders, vec![
-            FuzzyShapeOrder::new(vec![Unknown]),
-        ]);
+        assert_eq!(orders, vec![FuzzyShapeOrder::new(vec![Unknown]),]);
 
         let orders = shape_sequence.infer_input(2);
-        assert_eq!(orders, vec![
-            FuzzyShapeOrder::new(vec![Unknown, Unknown]),
-        ]);
+        assert_eq!(orders, vec![FuzzyShapeOrder::new(vec![Unknown, Unknown]),]);
     }
 
     #[test]

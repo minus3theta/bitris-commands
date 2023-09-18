@@ -1,7 +1,7 @@
-use bitris::Shape;
+use bitris::pieces::Shape;
 
-use crate::{ForEachVisitor, ShapeOrder};
 use crate::internals::fuzzy_shape::FuzzyShape;
+use crate::{ForEachVisitor, ShapeOrder};
 
 /// Represents an order of shapes that includes fuzzy.
 /// "Order" means affected by the hold operation.
@@ -37,7 +37,12 @@ impl FuzzyShapeOrder {
 
     /// See `expand_as_wildcard()` for details.
     pub(crate) fn expand_as_wildcard_walk(&self, visitor: &mut impl ForEachVisitor<[Shape]>) {
-        fn build(shapes: &Vec<FuzzyShape>, index: usize, buffer: &mut Vec<Shape>, visitor: &mut impl ForEachVisitor<[Shape]>) {
+        fn build(
+            shapes: &Vec<FuzzyShape>,
+            index: usize,
+            buffer: &mut Vec<Shape>,
+            visitor: &mut impl ForEachVisitor<[Shape]>,
+        ) {
             if shapes.len() <= index {
                 visitor.visit(buffer.as_slice());
                 return;
@@ -49,7 +54,7 @@ impl FuzzyShapeOrder {
                     build(shapes, index + 1, buffer, visitor);
                 }
                 FuzzyShape::Unknown => {
-                    for shape in Shape::all_into_iter() {
+                    for shape in Shape::all_iter() {
                         buffer[index] = shape;
                         build(shapes, index + 1, buffer, visitor);
                     }
@@ -64,7 +69,6 @@ impl FuzzyShapeOrder {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use bitris::*;
@@ -74,18 +78,21 @@ mod tests {
 
     #[test]
     fn fuzzy() {
-        use Shape::*;
         use FuzzyShape::*;
+        use Shape::*;
         let fuzzy_shape_order = FuzzyShapeOrder::new(vec![Known(T), Unknown, Known(O)]);
         let orders = fuzzy_shape_order.expand_as_wildcard();
-        assert_eq!(orders, vec![
-            ShapeOrder::new(vec![T, T, O]),
-            ShapeOrder::new(vec![T, I, O]),
-            ShapeOrder::new(vec![T, O, O]),
-            ShapeOrder::new(vec![T, L, O]),
-            ShapeOrder::new(vec![T, J, O]),
-            ShapeOrder::new(vec![T, S, O]),
-            ShapeOrder::new(vec![T, Z, O]),
-        ]);
+        assert_eq!(
+            orders,
+            vec![
+                ShapeOrder::new(vec![T, T, O]),
+                ShapeOrder::new(vec![T, I, O]),
+                ShapeOrder::new(vec![T, O, O]),
+                ShapeOrder::new(vec![T, L, O]),
+                ShapeOrder::new(vec![T, J, O]),
+                ShapeOrder::new(vec![T, S, O]),
+                ShapeOrder::new(vec![T, Z, O]),
+            ]
+        );
     }
 }

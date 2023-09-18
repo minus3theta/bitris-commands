@@ -1,10 +1,11 @@
-use bitris::Shape;
+use bitris::pieces::Shape;
 use itertools::Itertools;
 
 /// A collection of operations to take one from a shape order.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub enum PopOp {
-    #[default] First,
+    #[default]
+    First,
     Second,
 }
 
@@ -21,7 +22,11 @@ impl<'a> OrderCursor<'a> {
     #[inline]
     fn new(sequence: &'a ShapeOrder) -> Self {
         assert!(0 < sequence.shapes.len());
-        Self { sequence, head: Some(0), tails: 1 }
+        Self {
+            sequence,
+            head: Some(0),
+            tails: 1,
+        }
     }
 
     /// Returns `true` if a pop-able shape exists next.
@@ -43,7 +48,9 @@ impl<'a> OrderCursor<'a> {
             let shapes = &self.sequence.shapes;
             let n = [shapes[first]];
             let x = &shapes[self.tails..shapes.len()];
-            n.into_iter().chain(x.into_iter().map(|it| *it)).collect_vec()
+            n.into_iter()
+                .chain(x.into_iter().map(|it| *it))
+                .collect_vec()
         } else {
             Vec::new()
         })
@@ -152,7 +159,6 @@ impl ShapeOrder {
         self.shapes.as_slice()
     }
 }
-
 
 #[cfg(test)]
 mod tests {

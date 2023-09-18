@@ -1,9 +1,9 @@
-use bitris::Shape;
-use itertools::{Itertools, repeat_n};
+use bitris::pieces::Shape;
+use itertools::{repeat_n, Itertools};
 use thiserror::Error;
 
-use crate::{ForEachVisitor, ShapeCounter, ShapeOrder, ShapeSequence};
 use crate::bit_shapes::BitShapes;
+use crate::{ForEachVisitor, ShapeCounter, ShapeOrder, ShapeSequence};
 
 /// Calculate the number of permutations.
 fn calculate_permutation_size(len: usize, pop: usize) -> usize {
@@ -39,20 +39,22 @@ impl PatternElement {
         match *self {
             PatternElement::One(shape) => vec![vec![shape]],
             PatternElement::Fixed(shapes) => vec![shapes.to_vec()],
-            PatternElement::Wildcard => Shape::all_into_iter().map(|it| vec![it]).collect(),
+            PatternElement::Wildcard => Shape::all_iter().map(|it| vec![it]).collect(),
             PatternElement::Permutation(counter, pop) => {
                 assert!(0 < pop && pop <= counter.len());
-                counter.to_pairs().into_iter()
-                    .flat_map(|(shape, count)| { repeat_n(shape, count as usize).into_iter() })
+                counter
+                    .to_pairs()
+                    .into_iter()
+                    .flat_map(|(shape, count)| repeat_n(shape, count as usize).into_iter())
                     .permutations(pop)
                     .collect_vec()
             }
-            PatternElement::Factorial(counter) => {
-                counter.to_pairs().into_iter()
-                    .flat_map(|(shape, count)| { repeat_n(shape, count as usize).into_iter() })
-                    .permutations(counter.len())
-                    .collect_vec()
-            }
+            PatternElement::Factorial(counter) => counter
+                .to_pairs()
+                .into_iter()
+                .flat_map(|(shape, count)| repeat_n(shape, count as usize).into_iter())
+                .permutations(counter.len())
+                .collect_vec(),
         }
     }
 
@@ -66,7 +68,9 @@ impl PatternElement {
                 assert!(0 < pop && pop <= counter.len());
                 calculate_permutation_size(counter.len(), pop)
             }
-            PatternElement::Factorial(counter) => calculate_permutation_size(counter.len(), counter.len()),
+            PatternElement::Factorial(counter) => {
+                calculate_permutation_size(counter.len(), counter.len())
+            }
         }
     }
 
@@ -129,8 +133,8 @@ impl TryFrom<Vec<PatternElement>> for Pattern {
 
 impl Pattern {
     pub fn try_new(elements: Vec<PatternElement>) -> Result<Self, PatternCreationError> {
-        use PatternElement::*;
         use PatternCreationError::*;
+        use PatternElement::*;
 
         if elements.is_empty() {
             return Err(NoShapeSequences);
@@ -152,7 +156,9 @@ impl Pattern {
 
     #[allow(dead_code)]
     fn walk_shapes(&self, visitor: &mut impl ForEachVisitor<Vec<Shape>>) {
-        let all_shapes_vec: Vec<Vec<Vec<Shape>>> = self.elements.clone()
+        let all_shapes_vec: Vec<Vec<Vec<Shape>>> = self
+            .elements
+            .clone()
             .into_iter()
             .map(|it| it.to_shapes_vec())
             .collect();
@@ -202,7 +208,9 @@ impl Pattern {
         }
 
         let capacity = self.len_shapes_vec();
-        let mut visitor = Aggregator { out: Vec::with_capacity(capacity) };
+        let mut visitor = Aggregator {
+            out: Vec::with_capacity(capacity),
+        };
 
         self.walk_shapes(&mut visitor);
 
@@ -211,14 +219,16 @@ impl Pattern {
 
     /// Returns all sequences represented by the patterns.
     pub fn to_sequences(&self) -> Vec<ShapeSequence> {
-        self.to_shapes_vec().into_iter()
+        self.to_shapes_vec()
+            .into_iter()
             .map(|it| ShapeSequence::new(it))
             .collect()
     }
 
     /// Returns all orders represented by the patterns.
     pub fn to_orders(&self) -> Vec<ShapeOrder> {
-        self.to_shapes_vec().into_iter()
+        self.to_shapes_vec()
+            .into_iter()
             .map(|it| ShapeOrder::new(it))
             .collect()
     }
@@ -228,7 +238,8 @@ impl Pattern {
         if self.elements.is_empty() {
             return 0;
         }
-        self.elements.iter()
+        self.elements
+            .iter()
             .map(|it| it.len_shapes_vec())
             .fold(1, |sum, it| sum * it)
     }
@@ -236,19 +247,19 @@ impl Pattern {
     /// The number of elements in one shapes.
     pub fn dim_shapes(&self) -> usize {
         assert!(!self.elements.is_empty(), "The pattern do not have shapes.");
-        self.elements.iter()
+        self.elements
+            .iter()
             .map(|it| it.dim_shapes())
             .fold(0, |sum, it| sum + it)
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use bitris::Shape;
+    use bitris::pieces::Shape;
 
-    use crate::{Pattern, PatternCreationError, PatternElement, ShapeCounter};
     use crate::bit_shapes::BitShapes;
+    use crate::{Pattern, PatternCreationError, PatternElement, ShapeCounter};
 
     #[test]
     fn one() {
@@ -260,7 +271,10 @@ mod tests {
     fn fixed() {
         let shapes = BitShapes::try_from(vec![Shape::T, Shape::O, Shape::L]).unwrap();
         let pattern = PatternElement::Fixed(shapes);
-        assert_eq!(pattern.to_shapes_vec(), vec![vec![Shape::T, Shape::O, Shape::L]]);
+        assert_eq!(
+            pattern.to_shapes_vec(),
+            vec![vec![Shape::T, Shape::O, Shape::L]]
+        );
     }
 
     #[test]
@@ -301,7 +315,10 @@ mod tests {
 
     #[test]
     fn empty() {
-        assert_eq!(Pattern::try_from(vec![]).unwrap_err(), PatternCreationError::NoShapeSequences);
+        assert_eq!(
+            Pattern::try_from(vec![]).unwrap_err(),
+            PatternCreationError::NoShapeSequences
+        );
     }
 
     #[test]
@@ -330,7 +347,8 @@ mod tests {
         let patterns = Pattern::try_from(vec![
             PatternElement::Permutation(ShapeCounter::one_of_each(), 6),
             PatternElement::Permutation(ShapeCounter::one_of_each(), 3),
-        ]).unwrap();
+        ])
+        .unwrap();
         assert_eq!(patterns.len_shapes_vec(), 5040 * 210);
         assert_eq!(patterns.dim_shapes(), 9);
         assert_eq!(patterns.to_sequences().len(), 5040 * 210);

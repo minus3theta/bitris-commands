@@ -2,10 +2,10 @@ use bitris::prelude::*;
 use fxhash::FxHashSet;
 use thiserror::Error;
 
-use crate::{ClippedBoard, ForEachVisitor, OrderCursor, Pattern, PopOp, ShapeOrder, ShapeSequence};
 use crate::internals::{FuzzyShape, FuzzyShapeOrder};
-use crate::pc_possible::{Buffer, PcResults, VerticalParity};
 use crate::pc_possible::bulk_executor::ExecuteInstruction::Continue;
+use crate::pc_possible::{Buffer, PcResults, VerticalParity};
+use crate::{ClippedBoard, ForEachVisitor, OrderCursor, Pattern, PopOp, ShapeOrder, ShapeSequence};
 
 struct Visitor<'a> {
     result: &'a mut PcResults,
@@ -27,7 +27,6 @@ impl<'a> ForEachVisitor<[Shape]> for Visitor<'a> {
     }
 }
 
-
 /// Dataset for detecting the same state during PC possible search.
 /// The block counts and height on the board can determine the search depth. (Placed pieces will change the block counts.)
 /// If the search depth is the same and the head of shapes is the same, they are the same states.
@@ -40,7 +39,6 @@ struct SearchingState {
 
     first: Option<Shape>,
 }
-
 
 #[inline]
 fn validate_board(clipped: &ClippedBoard) -> bool {
@@ -63,7 +61,6 @@ fn validate_board(clipped: &ClippedBoard) -> bool {
 
     true
 }
-
 
 /// A collection of errors that occur when making the executor.
 #[derive(Error, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -90,7 +87,8 @@ pub struct PcPossibleBulkExecutor<'a, T: RotationSystem> {
 /// A collection of statements that instruct execution to continue/stop.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Default, Debug)]
 pub enum ExecuteInstruction {
-    #[default] Continue,
+    #[default]
+    Continue,
     Stop,
 }
 
@@ -160,7 +158,14 @@ impl<'a, T: RotationSystem> PcPossibleBulkExecutor<'a, T> {
         // Spawn above the height so that it is not stuck when harddrop only.
         let spawn_position = bl(5, clipped_board.height() as i32 + 4);
 
-        Ok(Self { move_rules, clipped_board, pattern, allows_hold, has_extra_shapes, spawn_position })
+        Ok(Self {
+            move_rules,
+            clipped_board,
+            pattern,
+            allows_hold,
+            has_extra_shapes,
+            spawn_position,
+        })
     }
 
     /// Start the search for PC possible in bulk.
@@ -210,7 +215,10 @@ impl<'a, T: RotationSystem> PcPossibleBulkExecutor<'a, T> {
     /// assert!(result.count_accepted() < 2520); // under 2520 = 7*6*5*4*3 sequences
     /// assert!(0 < result.count_pending());
     /// ```
-    pub fn execute_with_early_stopping(&self, early_stopping: impl Fn(&PcResults) -> ExecuteInstruction) -> PcResults {
+    pub fn execute_with_early_stopping(
+        &self,
+        early_stopping: impl Fn(&PcResults) -> ExecuteInstruction,
+    ) -> PcResults {
         let sequences = self.pattern.to_sequences();
         let infer_size = self.pattern.dim_shapes();
 
@@ -229,11 +237,15 @@ impl<'a, T: RotationSystem> PcPossibleBulkExecutor<'a, T> {
             visited_states.clear();
 
             let order = sequence.to_shape_order();
-            if let Some(sequence_pc) = self.search_pc_order(self.clipped_board, order, &mut visited_states) {
+            if let Some(sequence_pc) =
+                self.search_pc_order(self.clipped_board, order, &mut visited_states)
+            {
                 results.accept_if_present(&sequence, true);
 
                 if self.allows_hold {
-                    let mut visitor = Visitor { result: &mut results };
+                    let mut visitor = Visitor {
+                        result: &mut results,
+                    };
                     sequence_pc.infer_input_walk(infer_size, &mut visitor);
                 }
             } else {
@@ -252,37 +264,55 @@ impl<'a, T: RotationSystem> PcPossibleBulkExecutor<'a, T> {
     /// The interface is not directly exposed since it's a shortcut to improve speed.
     pub(crate) fn execute_single(&self) -> bool {
         let sequences = self.pattern.to_sequences();
-        assert_eq!(sequences.len(), 1, "This function is dedicated to a single sequence.");
+        assert_eq!(
+            sequences.len(),
+            1,
+            "This function is dedicated to a single sequence."
+        );
         let order = sequences.first().unwrap().to_shape_order();
 
         let mut visited_states = FxHashSet::<SearchingState>::default();
-        self.search_pc_order(self.clipped_board, order, &mut visited_states).is_some()
+        self.search_pc_order(self.clipped_board, order, &mut visited_states)
+            .is_some()
     }
 
     fn search_pc_order(
         &self,
         current_clipped_board: ClippedBoard,
         order: ShapeOrder,
-        visited_states: &mut FxHashSet::<SearchingState>,
+        visited_states: &mut FxHashSet<SearchingState>,
     ) -> Option<ShapeSequence> {
         let cursor = order.new_cursor();
         let mut buffer = Buffer::with_resized(cursor.len_unused());
         let parity = VerticalParity::new(current_clipped_board);
 
-        self.pop_shape(cursor, current_clipped_board, visited_states, &mut buffer, &parity)
+        self.pop_shape(
+            cursor,
+            current_clipped_board,
+            visited_states,
+            &mut buffer,
+            &parity,
+        )
     }
 
     fn pop_shape(
         &self,
         cursor: OrderCursor,
         clipped_board: ClippedBoard,
-        visited_states: &mut FxHashSet::<SearchingState>,
+        visited_states: &mut FxHashSet<SearchingState>,
         buffer: &mut Buffer,
         parity: &VerticalParity,
     ) -> Option<ShapeSequence> {
         let (popped, next_cursor) = cursor.pop(PopOp::First);
         if let Some(shape) = popped {
-            if let Some(order) = self.increment(shape, clipped_board, next_cursor, visited_states, buffer, parity) {
+            if let Some(order) = self.increment(
+                shape,
+                clipped_board,
+                next_cursor,
+                visited_states,
+                buffer,
+                parity,
+            ) {
                 return Some(order);
             }
         } else {
@@ -292,7 +322,14 @@ impl<'a, T: RotationSystem> PcPossibleBulkExecutor<'a, T> {
         if self.allows_hold {
             let (popped, next_cursor) = cursor.pop(PopOp::Second);
             if let Some(shape) = popped {
-                if let Some(order) = self.increment(shape, clipped_board, next_cursor, visited_states, buffer, parity) {
+                if let Some(order) = self.increment(
+                    shape,
+                    clipped_board,
+                    next_cursor,
+                    visited_states,
+                    buffer,
+                    parity,
+                ) {
                     return Some(order);
                 }
             }
@@ -306,17 +343,19 @@ impl<'a, T: RotationSystem> PcPossibleBulkExecutor<'a, T> {
         shape: Shape,
         clipped_board: ClippedBoard,
         next_cursor: OrderCursor,
-        visited_states: &mut FxHashSet::<SearchingState>,
+        visited_states: &mut FxHashSet<SearchingState>,
         buffer: &mut Buffer,
         parity: &VerticalParity,
     ) -> Option<ShapeSequence> {
         buffer.increment(shape);
 
         let placement = shape.with(Orientation::North).with(self.spawn_position);
-        let moves = self.move_rules.generate_minimized_moves(clipped_board.board(), placement);
+        let moves = self
+            .move_rules
+            .generate_minimized_moves(clipped_board.board(), placement);
 
         for placement in moves {
-            if clipped_board.height() as i32 <= placement.tr_placement().position.ty {
+            if clipped_board.height() as i32 <= placement.to_tr_placement().position.ty {
                 continue;
             }
 
@@ -348,7 +387,13 @@ impl<'a, T: RotationSystem> PcPossibleBulkExecutor<'a, T> {
                 continue;
             }
 
-            if let Some(order) = self.pop_shape(next_cursor, next_clipped_board, visited_states, buffer, &next_parity) {
+            if let Some(order) = self.pop_shape(
+                next_cursor,
+                next_clipped_board,
+                visited_states,
+                buffer,
+                &next_parity,
+            ) {
                 return Some(order);
             }
         }
@@ -359,36 +404,35 @@ impl<'a, T: RotationSystem> PcPossibleBulkExecutor<'a, T> {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
 
-    use bitris::{AllowMove, Board64, BoardOp, MoveRules, Shape, xy};
+    use bitris::{xy, AllowMove, Board64, BoardOp, MoveRules, Shape};
 
-    use crate::{BitShapes, ClippedBoard, Pattern, PatternElement, ShapeCounter, ShapeSequence};
     use crate::pc_possible::{PcPossibleBulkExecutor, PcPossibleExecutorBulkCreationError};
+    use crate::{BitShapes, ClippedBoard, Pattern, PatternElement, ShapeCounter, ShapeSequence};
 
     #[test]
     fn success_rate_contain_filled_line() {
         use PatternElement::*;
         use Shape::*;
 
-        let board = Board64::from_str("
+        let board = Board64::from_str(
+            "
             ####....##
             #####..###
             ##########
             #####..###
-        ").unwrap();
+        ",
+        )
+        .unwrap();
         let clipped_board = ClippedBoard::try_new(board, 4).unwrap();
-        let pattern = Pattern::try_from(vec![
-            Permutation(ShapeCounter::one_of_each(), 3),
-        ]).unwrap();
+        let pattern = Pattern::try_from(vec![Permutation(ShapeCounter::one_of_each(), 3)]).unwrap();
         let move_rules = MoveRules::srs(AllowMove::Softdrop);
 
-        let executor = PcPossibleBulkExecutor::try_new(
-            &move_rules, clipped_board, &pattern, true,
-        ).unwrap();
+        let executor =
+            PcPossibleBulkExecutor::try_new(&move_rules, clipped_board, &pattern, true).unwrap();
         let result = executor.execute();
         assert_eq!(result.count_succeed(), 90);
         assert_eq!(result.count_pending(), 0);
@@ -405,30 +449,33 @@ mod tests {
         use PatternElement::*;
         use Shape::*;
 
-        let board = Board64::from_str("
+        let board = Board64::from_str(
+            "
             ####....##
             #####..###
             #####..###
-        ").unwrap();
+        ",
+        )
+        .unwrap();
         let clipped_board = ClippedBoard::try_new(board, 3).unwrap();
         let move_rules = MoveRules::srs(AllowMove::Softdrop);
 
         {
-            let single_pattern = Pattern::try_from(vec![
-                Fixed(BitShapes::try_from(vec![J, O, I]).unwrap()),
-            ]).unwrap();
-            let executor = PcPossibleBulkExecutor::try_new(
-                &move_rules, clipped_board, &single_pattern, true,
-            ).unwrap();
+            let single_pattern =
+                Pattern::try_from(vec![Fixed(BitShapes::try_from(vec![J, O, I]).unwrap())])
+                    .unwrap();
+            let executor =
+                PcPossibleBulkExecutor::try_new(&move_rules, clipped_board, &single_pattern, true)
+                    .unwrap();
             assert!(executor.execute_single());
         }
         {
-            let single_pattern = Pattern::try_from(vec![
-                Fixed(BitShapes::try_from(vec![J, T, I]).unwrap()),
-            ]).unwrap();
-            let executor = PcPossibleBulkExecutor::try_new(
-                &move_rules, clipped_board, &single_pattern, true,
-            ).unwrap();
+            let single_pattern =
+                Pattern::try_from(vec![Fixed(BitShapes::try_from(vec![J, T, I]).unwrap())])
+                    .unwrap();
+            let executor =
+                PcPossibleBulkExecutor::try_new(&move_rules, clipped_board, &single_pattern, true)
+                    .unwrap();
             assert!(!executor.execute_single());
         }
     }
@@ -436,18 +483,19 @@ mod tests {
     #[test]
     fn error_unexpected_board_spaces() {
         use crate::PatternElement::*;
-        let board = Board64::from_str("
+        let board = Board64::from_str(
+            "
             ######...#
             ######..##
-        ").unwrap();
+        ",
+        )
+        .unwrap();
         let clipped_board = ClippedBoard::try_new(board, 2).unwrap();
-        let pattern = Pattern::try_from(vec![
-            One(Shape::O),
-            One(Shape::O),
-        ]).unwrap();
+        let pattern = Pattern::try_from(vec![One(Shape::O), One(Shape::O)]).unwrap();
         let move_rules = MoveRules::srs(AllowMove::Softdrop);
         assert_eq!(
-            PcPossibleBulkExecutor::try_new(&move_rules, clipped_board, &pattern, true).unwrap_err(),
+            PcPossibleBulkExecutor::try_new(&move_rules, clipped_board, &pattern, true)
+                .unwrap_err(),
             PcPossibleExecutorBulkCreationError::UnexpectedBoardSpaces,
         );
     }
@@ -455,17 +503,19 @@ mod tests {
     #[test]
     fn error_short_pattern() {
         use crate::PatternElement::*;
-        let board = Board64::from_str("
+        let board = Board64::from_str(
+            "
             ######....
             ######....
-        ").unwrap();
+        ",
+        )
+        .unwrap();
         let clipped_board = ClippedBoard::try_new(board, 2).unwrap();
-        let pattern = Pattern::try_from(vec![
-            One(Shape::O),
-        ]).unwrap();
+        let pattern = Pattern::try_from(vec![One(Shape::O)]).unwrap();
         let move_rules = MoveRules::srs(AllowMove::Softdrop);
         assert_eq!(
-            PcPossibleBulkExecutor::try_new(&move_rules, clipped_board, &pattern, true).unwrap_err(),
+            PcPossibleBulkExecutor::try_new(&move_rules, clipped_board, &pattern, true)
+                .unwrap_err(),
             PcPossibleExecutorBulkCreationError::ShortPatternDimension,
         );
     }
@@ -481,14 +531,13 @@ mod tests {
         }
 
         let clipped_board = ClippedBoard::try_new(board, height).unwrap();
-        let pattern = Pattern::try_from(vec![
-            PatternElement::One(Shape::I),
-        ].repeat((height / 4) as usize)).unwrap();
+        let pattern =
+            Pattern::try_from(vec![PatternElement::One(Shape::I)].repeat((height / 4) as usize))
+                .unwrap();
         let move_rules = MoveRules::srs(AllowMove::Softdrop);
 
-        let executor = PcPossibleBulkExecutor::try_new(
-            &move_rules, clipped_board, &pattern, true,
-        ).unwrap();
+        let executor =
+            PcPossibleBulkExecutor::try_new(&move_rules, clipped_board, &pattern, true).unwrap();
         let result = executor.execute();
         assert_eq!(result.count_succeed(), 1);
     }
@@ -507,12 +556,14 @@ mod tests {
         }
 
         let clipped_board = ClippedBoard::try_new(board, height).unwrap();
-        let pattern = Pattern::try_from(vec![
-            PatternElement::One(Shape::I),
-        ].repeat((height / 4) as usize + 2)).unwrap();
+        let pattern = Pattern::try_from(
+            vec![PatternElement::One(Shape::I)].repeat((height / 4) as usize + 2),
+        )
+        .unwrap();
         let move_rules = MoveRules::srs(AllowMove::Softdrop);
         assert_eq!(
-            PcPossibleBulkExecutor::try_new(&move_rules, clipped_board, &pattern, true).unwrap_err(),
+            PcPossibleBulkExecutor::try_new(&move_rules, clipped_board, &pattern, true)
+                .unwrap_err(),
             PcPossibleExecutorBulkCreationError::BoardIsTooHigh,
         );
     }

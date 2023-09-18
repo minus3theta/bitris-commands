@@ -1,6 +1,6 @@
 use std::ops;
 
-use bitris::Shape;
+use bitris::pieces::Shape;
 use derive_more::Constructor;
 
 /// Holds the count of each shape. Each shape can hold up to 255 items.
@@ -41,7 +41,8 @@ impl ShapeCounter {
 
     #[inline]
     pub fn len(&self) -> usize {
-        self.counters.into_iter()
+        self.counters
+            .into_iter()
             .map(|it| it as usize)
             .fold(0, |sum, it| sum + it)
     }
@@ -55,7 +56,7 @@ impl ShapeCounter {
     /// ```
     pub fn to_pairs(&self) -> Vec<(Shape, u8)> {
         let mut vec = Vec::<(Shape, u8)>::with_capacity(7);
-        for shape in Shape::all_into_iter() {
+        for shape in Shape::all_iter() {
             let counter = self.counters[shape as usize];
             if 0 < counter {
                 vec.push((shape, counter));
@@ -83,10 +84,9 @@ impl ops::Index<Shape> for ShapeCounter {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use bitris::Shape;
+    use bitris::pieces::Shape;
 
     use crate::ShapeCounter;
 
@@ -94,7 +94,7 @@ mod tests {
     fn one_of_each() {
         let counter = ShapeCounter::one_of_each();
         assert_eq!(counter.len(), 7);
-        assert!(Shape::all_into_iter().any(|shape| counter[shape] == 1));
+        assert!(Shape::all_iter().any(|shape| counter[shape] == 1));
         assert!(counter.to_pairs().into_iter().all(|(_, count)| count == 1));
     }
 }
